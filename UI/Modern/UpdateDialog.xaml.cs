@@ -109,7 +109,7 @@ namespace geetRPCS.UI.Modern
                 LanguageManager.Current.DialogUpToDateTitle ?? "You're Up to Date!",
                 LanguageManager.Current.UpdateDialogCurrentVersion ?? "📦 Current Version:",
                 $"v{Utils.AppVersion.VersionText}",
-                LanguageManager.Current.UpdateDialogUpToDateMessage ?? "You have the latest version of geetRPCS installed.\nEnjoy your productivity! 🚀",
+                LanguageManager.Current.UpdateDialogUpToDateMessage ?? $"You have the latest version of {Utils.Branding.ProductName} installed.\nEnjoy your productivity! 🚀",
                 "SystemFillColorSuccessBrush",
                 LanguageManager.Current.UpdateBtnAwesome ?? "👍 Awesome!",
                 showClose: false);

@@ -147,7 +147,7 @@ namespace geetRPCS.UI.Modern
                 Title = L.GuideNavAbout ?? "About",
                 Paragraphs = new[]
                 {
-                    string.Format(L.GuideAbout1 ?? "geetRPCS v{0}", Utils.AppVersion.VersionText),
+                    string.Format(L.GuideAbout1 ?? $"{Utils.Branding.ProductName} v{{0}}", Utils.AppVersion.VersionText),
                     L.GuideAbout2 ?? ""
                 },
                 Links = new[]

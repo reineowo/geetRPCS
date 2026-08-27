@@ -30,7 +30,7 @@ namespace geetRPCS.Utils
             }
         }
 
-        // Full display string, e.g. "geetRPCS v1.4.1"
-        public static string DisplayName => $"geetRPCS v{VersionText}";
+        // Full display string, e.g. "YuuSoCuti Status v1.4.1"
+        public static string DisplayName => $"{Branding.ProductName} v{VersionText}";
     }
 }

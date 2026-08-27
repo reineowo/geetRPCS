@@ -7,7 +7,7 @@ namespace geetRPCS.Utils
 {
     public static class ShortcutManager
     {
-        private static readonly string AppName = "geetRPCS";
+        private static readonly string AppName = Branding.ProductName;
         private static readonly string ExePath = Environment.ProcessPath!;
         private static readonly string WorkingDir = Path.GetDirectoryName(ExePath) ?? "";
  

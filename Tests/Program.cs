@@ -146,6 +146,15 @@ namespace Tests
                     && generic.Details == "Using Unsupported Editor"
                     && generic.State == "AMV lyrics timeline");
 
+                var brandedSelf = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = Branding.LegacyProcessName,
+                    AppName = Branding.LegacyProcessName,
+                    WindowTitle = "Presence Preview"
+                });
+                Check("legacy executable name is replaced by the current display brand",
+                    brandedSelf?.Details == $"Using {Branding.ProductName}");
+
                 var afterEffects = providers.Resolve(new ActivityContext
                 {
                     ProcessName = "AfterFX",
@@ -470,6 +479,19 @@ namespace Tests
                         }
                     }
                     Check("every key in en.json exists in every language file and template.json", filesWithGaps == 0);
+
+                    int filesWithWrongBrand = 0;
+                    foreach (var file in Directory.EnumerateFiles(langsDir, "*.json"))
+                    {
+                        using var document = JsonDocument.Parse(File.ReadAllText(file));
+                        if (!document.RootElement.TryGetProperty("app_name", out var appName)
+                            || appName.GetString() != Branding.ProductName)
+                        {
+                            filesWithWrongBrand++;
+                            Console.WriteLine($"      {Path.GetFileName(file)}: app_name is not '{Branding.ProductName}'");
+                        }
+                    }
+                    Check("every language displays the current product brand", filesWithWrongBrand == 0);
                 }
             }
 
@@ -921,7 +943,7 @@ namespace Tests
                     State = "Coding",
                     Assets = new Assets
                     {
-                        LargeImageText = "geetRPCS",
+                        LargeImageText = Branding.ProductName,
                         LargeImageKey = "geetrpcs-logo",
                         SmallImageKey = "geetrpcs-small"
                     },
@@ -932,7 +954,7 @@ namespace Tests
                     System.Windows.Forms.Application.DoEvents();
                     Thread.Sleep(10);
                 }
-                Check("app name updated from presence", preview.AppNameValue == "geetRPCS");
+                Check("app name updated from presence", preview.AppNameValue == Branding.ProductName);
                 Check("details updated from presence", preview.DetailsValue == "Working on something");
                 Check("state updated from presence", preview.StateValue == "Coding");
                 Check("presence button 1 visible", preview.IsButton1Visible);
@@ -944,7 +966,7 @@ namespace Tests
 
                 preview.SetIdleState();
                 Check("idle state resets buttons", !preview.IsButton1Visible);
-                Check("idle state restores app name", preview.AppNameValue == "geetRPCS");
+                Check("idle state restores app name", preview.AppNameValue == Branding.ProductName);
                 Check("idle state restores live status", preview.StatusValue == LanguageManager.Current.PreviewLive);
 
                 preview.ToggleVisibility();

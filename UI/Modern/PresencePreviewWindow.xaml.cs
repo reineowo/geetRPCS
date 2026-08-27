@@ -460,7 +460,7 @@ namespace geetRPCS.UI.Modern
             _currentPresence = presence;
             if (presence == null) { SetIdleState(); return; }
 
-            AppNameText.Text = presence.Assets?.LargeImageText ?? "geetRPCS";
+            AppNameText.Text = presence.Assets?.LargeImageText ?? Utils.Branding.ProductName;
             DetailsText.Text = presence.Details ?? LanguageManager.Current.PreviewIdling;
             StateText.Text = presence.State ?? "";
             StateText.Visibility = string.IsNullOrEmpty(presence.State)
@@ -512,7 +512,7 @@ namespace geetRPCS.UI.Modern
         public void SetIdleState()
         {
             if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(SetIdleState)); return; }
-            AppNameText.Text = "geetRPCS";
+            AppNameText.Text = Utils.Branding.ProductName;
             DetailsText.Text = LanguageManager.Current.PreviewIdling;
             StateText.Text = LanguageManager.Current.PreviewReadyToWork;
             StateText.Visibility = Visibility.Visible;

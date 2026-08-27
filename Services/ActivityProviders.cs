@@ -249,6 +249,8 @@ namespace geetRPCS.Services
         {
             string appName = ActivityText.Normalize(context.AppName);
             if (string.IsNullOrEmpty(appName)) appName = context.ProcessName;
+            if (string.Equals(context.ProcessName, Branding.LegacyProcessName, StringComparison.OrdinalIgnoreCase))
+                appName = Branding.ProductName;
             return new ActivitySnapshot
             {
                 Details = ActivityText.Normalize($"Using {appName}"),

@@ -168,7 +168,8 @@ namespace geetRPCS.Services
                 string contentPath = FindContentFolder(extractPath);
                 
                 Log($"Update prepared successfully at: {contentPath}", "INFO");
-                OnStatusChanged?.Invoke(LanguageManager.Current.UpdateReadyRestart ?? "Update ready! geetRPCS will restart.");
+                OnStatusChanged?.Invoke(LanguageManager.Current.UpdateReadyRestart
+                    ?? $"Update ready! {Utils.Branding.ProductName} will restart.");
                 
                 return contentPath;
             }

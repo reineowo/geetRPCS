@@ -734,9 +734,9 @@ namespace geetRPCS.Services
                 Assets = new AssetConfig
                 {
                     LargeImageKey = "geetrpcs-logo",
-                    LargeImageText = $"geetRPCS v{AppVersion.VersionText}",
+                    LargeImageText = AppVersion.DisplayName,
                     SmallImageKey = "geetrpcs-small",
-                    SmallImageText = "Powered by geetRPCS"
+                    SmallImageText = $"Powered by {Branding.ProductName}"
                 },
                 Buttons = new[]
                 {

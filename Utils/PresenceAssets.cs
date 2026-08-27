@@ -32,7 +32,7 @@ namespace geetRPCS.Utils
                 LargeImageKey = app?.LargeKey ?? fallback.LargeImageKey,
                 LargeImageText = app?.LargeText ?? fallback.LargeImageText,
                 SmallImageKey = "geetrpcs-small", // "Patented" key
-                SmallImageText = "geetRPCS"       // "Patented" text
+                SmallImageText = Branding.ProductName
             };
             return assets;
         }
