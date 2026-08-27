@@ -31,7 +31,7 @@ namespace geetRPCS.UI.Modern
 {
     public partial class GuideWindow : Window
     {
-        private const string RepoUrl = "https://github.com/geetcr4ck/geetRPCS";
+        private const string RepoUrl = "https://github.com/reineowo/geetRPCS";
 
         private sealed class GuideTopic
         {

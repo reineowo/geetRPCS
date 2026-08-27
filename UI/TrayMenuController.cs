@@ -114,16 +114,6 @@ namespace geetRPCS.UI
                 themeMenu.DropDownItems.Add(themeLightItem);
                 menu.Items.Add(themeMenu);
 
-                var telemetryItem = CreateMenuItem(LanguageManager.Current.MenuTelemetry, FluentGlyphs.Send,
-                    isChecked: TelemetryService.IsEnabled());
-                telemetryItem.Click += async (s, args) =>
-                {
-                    bool newState = !TelemetryService.IsEnabled();
-                    await _coordinator.ToggleTelemetryAsync(newState);
-                    SetToggleState((ToolStripMenuItem)s!, newState);
-                };
-                menu.Items.Add(telemetryItem);
-
                 // Auto-Update toggle
                 var autoUpdateItem = CreateMenuItem(LanguageManager.Current.MenuAutoUpdate ?? "🔄 Auto-Update", FluentGlyphs.UpdateRestore,
                     isChecked: SettingsService.Instance.AutoUpdateEnabled);

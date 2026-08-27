@@ -141,7 +141,7 @@ namespace geetRPCS.UI.Modern
         private void ConfigureEnhanced(UpdateChecker.GitHubRelease release)
         {
             _release = release;
-            _downloadUrl = release.HtmlUrl ?? "https://github.com/geetcr4ck/geetRPCS/releases";
+            _downloadUrl = release.HtmlUrl ?? "https://github.com/reineowo/geetRPCS/releases";
             string latestVersion = release.TagName?.TrimStart('v')
                 ?? LanguageManager.Current.UpdateVersionUnknown;
 

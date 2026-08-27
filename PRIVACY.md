@@ -16,16 +16,10 @@ The Application connects to the local Discord client via Discord's RPC (Remote P
 - **Shared Data:** The Application sends the name of the active supported application, its state (e.g., "Editing file.cs"), and timestamps to your local Discord client.
 - **Privacy Control:** This data is only visible on your Discord profile based on your Discord privacy settings ("Activity Privacy").
 
-### 1.3. Telemetry (Optional)
-If enabled (default: On), the Application collects anonymous usage data to help identify popular features and improve stability.
-- **What is collected:**
-  - Application launch count.
-  - Basic error logs (if crashes occur).
-- **What is NOT collected:**
-  - Personally Identifiable Information (PII).
-  - IP addresses.
-  - File paths or window titles.
-- **How to Opt-Out:** You can disable this at any time via the System Tray Menu → **"📡 Telemetry"** (uncheck it).
+### 1.3. No Telemetry
+This fork does not contain an analytics or telemetry client. Discord usernames,
+user IDs, process lists, window titles, activity bridge documents, and usage
+statistics are not sent to a project-maintainer endpoint.
 
 ### 1.4. Mouse Energy Detector
 This feature analyzes mouse movement speed and click frequency locally to determine an "Energy Level" (e.g., 'Focused', 'Relaxing').
@@ -34,7 +28,9 @@ This feature analyzes mouse movement speed and click frequency locally to determ
 
 ## 2. External Services
 
-- **GitHub API:** The Application checks `api.github.com` to detect updates for the application and the `apps.json` database. This interaction is subject to [GitHub's Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
+- **GitHub API:** Only an explicit update check or enabling Auto-Update contacts
+  `api.github.com` to detect application and database updates. This interaction
+  is subject to [GitHub's Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
 
 ## 3. Data Storage
 
@@ -51,4 +47,4 @@ We may update this policy as the application evolves. Significant changes will b
 
 ## 5. Contact
 
-If you have questions about this Privacy Policy, please open an issue on our [GitHub Repository](https://github.com/geetcr4ck/geetRPCS).
+If you have questions about this Privacy Policy, please open an issue on our [GitHub Repository](https://github.com/reineowo/geetRPCS).

@@ -54,7 +54,7 @@ namespace geetRPCS.UI.Modern
         public const string Palette = "\uE790";
         /// <summary>Moon / quiet-hours crescent (theme) — E708.</summary>
         public const string Moon = "\uE708";
-        /// <summary>Send (telemetry) — E724.</summary>
+        /// <summary>Send — E724.</summary>
         public const string Send = "\uE724";
         /// <summary>Update restore (auto-update) — E777.</summary>
         public const string UpdateRestore = "\uE777";

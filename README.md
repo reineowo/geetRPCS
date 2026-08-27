@@ -69,7 +69,7 @@ irm https://bit.ly/geetrpcs-del | iex
 Requires the **[.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)** on Windows.
 
 ```powershell
-git clone https://github.com/geetcr4ck/geetRPCS.git
+git clone https://github.com/reineowo/geetRPCS.git
 cd geetRPCS
 
 # Portable (recommended): single self-contained EXE
@@ -92,7 +92,8 @@ Output lands in `publish/portable/` or `publish/minimal/`.
 
 **Core**
 
-- 🎯 **Hybrid detection** — foreground window + taskbar event hook, single instance, ~70 MB working set idle
+- 🎯 **Universal detection** — every foreground application is supported; known apps add friendly names/assets
+- 🔌 **Local activity providers** — app-aware parsing plus a JSON bridge for project/composition/layer details
 - 🎨 **Tray icon animation** — 800 ms rotation + brightness pulse on app switch
 - 🖱️ **Mouse Energy Detector** — Sleeping / Relaxing / Normal / Focused / Rush shown on your Discord status
 - 🎭 **Witty Narrative Engine** — rotating humorous texts via `witty.json` + `{witty_text}` placeholder
@@ -115,7 +116,7 @@ Output lands in `publish/portable/` or `publish/minimal/`.
 
 **Internals**
 
-- 🔇 Silent auto-update (configurable cadence, default off) + auto apps-DB sync
+- 🔇 Opt-in release and app-database updates (default off) with mandatory release checksums
 - 🔁 Network retry, shared `HttpClient`, true hot reload of `config.json` / `apps.json`
 - 🪵 Centralized logging to `%LOCALAPPDATA%\geetRPCS\geetRPCS.log`
 - 🧹 Event-driven memory trims (no scheduled 30-min cycle), FIFO 16-entry preview image cache
@@ -145,6 +146,12 @@ Output lands in `publish/portable/` or `publish/minimal/`.
 
 > 💡 Add your own via tray → **Manage Apps** → **➕ Add Custom App** (GUI) or edit [`apps.json`](apps.json) and press `Ctrl+Alt+R`.
 
+Unknown apps no longer need to be registered first: they fall back to their
+process name and foreground window title. For deeper state such as an After
+Effects project, composition, or selected layer, see
+[`docs/ACTIVITY_PROVIDERS.md`](docs/ACTIVITY_PROVIDERS.md). A ready-to-run After
+Effects JSX bridge is included under `integrations/after-effects/`.
+
 ---
 
 ## 🖥️ Usage
@@ -167,7 +174,7 @@ Right-click the tray icon:
 | :--- | :--- |
 | ⚡ Quick Actions | Manage shortcuts, open folder, edit configs |
 | ⏸️ Pause / 🔒 Private Mode | Toggle presence or mask window titles |
-| 🖱️ Mouse Energy / 🔄 Auto-Update / 🎨 Tray Animation / 📡 Telemetry | Feature toggles |
+| 🖱️ Mouse Energy / 🔄 Auto-Update / 🎨 Tray Animation | Feature toggles |
 | 🌓 Theme | Switch UI theme: System / Dark / Light |
 | 🛠️ Manage Apps | Enable/disable apps, per-app presence editor, **Add Custom App** |
 | ✨ Custom Rich Presence | Build your own presence (text, buttons, elapsed time, your own Application ID) |
@@ -217,7 +224,7 @@ Out of the box geetRPCS works without any config file. Edit [`config.json`](conf
       "SmallImageText": "Powered by geetRPCS"
     },
     "Buttons": [
-      { "Label": "GitHub", "Url": "https://github.com/geetcr4ck/geetRPCS" }
+      { "Label": "GitHub", "Url": "https://github.com/reineowo/geetRPCS" }
     ]
   }
 }
@@ -246,7 +253,9 @@ Out of the box geetRPCS works without any config file. Edit [`config.json`](conf
 <details>
 <summary><b>How does the Automatic Apps Database Update work?</b></summary>
 
-On startup geetRPCS checks if your `apps.json` is outdated. If a newer version is published, a one-click prompt offers to update it. Your custom apps are stored in `settings.json`, so app-database updates never remove them.
+When Auto-Update is enabled, geetRPCS checks whether `apps.json` is outdated.
+Your custom apps are stored in `settings.json`, so app-database updates never
+remove them. With Auto-Update disabled, no repository is contacted at startup.
 
 </details>
 
@@ -303,9 +312,9 @@ Verify the binary on [VirusTotal](https://www.virustotal.com) or whitelist it in
 ## 📞 Links
 
 <p align="center">
-  <a href="https://github.com/geetcr4ck/geetRPCS/issues">🐛 Report Bug</a> •
-  <a href="https://github.com/geetcr4ck/geetRPCS/discussions">💬 Discussions</a> •
-  <a href="https://github.com/geetcr4ck/geetRPCS/releases">📦 Releases</a>
+  <a href="https://github.com/reineowo/geetRPCS/issues">🐛 Report Bug</a> •
+  <a href="https://github.com/reineowo/geetRPCS/discussions">💬 Discussions</a> •
+  <a href="https://github.com/reineowo/geetRPCS/releases">📦 Releases</a>
 </p>
 
 ---

@@ -43,7 +43,6 @@ namespace geetRPCS.Services
         void TogglePrivateMode();
         Task SetMouseEnergyAsync(bool enabled);
         Task SetTrayAnimationAsync(bool enabled);
-        Task ToggleTelemetryAsync(bool enabled);
         bool SaveConfig(Config cfg);
         void ReloadConfig();
     }

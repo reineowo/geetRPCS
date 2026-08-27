@@ -112,7 +112,7 @@ The runner validates:
 - **Language parity** – every key in `en.json` must exist in every other language file **and** `template.json`.
 - **apps.json integrity** – every app entry has a valid 17–20 digit client ID, unique process names, non-empty large/small keys, and valid button URLs/labels (max 2 buttons, labels ≤ 32 chars).
 - **App-ID rules** – `IsValidApplicationId()` boundaries (17–20 digits, digits only).
-- **Telemetry default** – telemetry stays ON for new installs.
+- **Universal tracking default** – unsupported foreground apps are tracked by default.
 
 After editing any language file or `en.json`, run `dotnet run --project Tests` locally — it should end with `ALL TESTS PASSED`.
 

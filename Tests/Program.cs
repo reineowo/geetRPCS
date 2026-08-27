@@ -125,11 +125,65 @@ namespace Tests
             Check("whitespace-padded valid id accepted (trimmed)", AppCoordinator.IsValidApplicationId("  12345678901234567  "));
             Check("whitespace-padded short id still rejected", !AppCoordinator.IsValidApplicationId(" 1234567890123456 "));
 
-            Console.WriteLine("Telemetry default:");
-            // First run creates new AppSettings() with no saved file; the property
-            // initializer must keep telemetry ON by default (PRIVACY.md: "default: On").
-            Check("telemetry ON by default (new AppSettings)", new AppSettings().TelemetryEnabled);
+            Console.WriteLine("Universal tracking default:");
+            Check("unknown apps are tracked by default (new AppSettings)", new AppSettings().TrackUnknownApps);
             Check("theme mode defaults to System (new AppSettings)", new AppSettings().ThemeMode == "System");
+
+            Console.WriteLine("Activity provider pipeline:");
+            string bridgeDir = Path.Combine(Path.GetTempPath(), "geet_activity_test_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(bridgeDir);
+            try
+            {
+                using var providers = ActivityProviderRegistry.CreateDefault(watchBridge: false, bridgeDirectory: bridgeDir);
+                var generic = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "unsupported-editor",
+                    AppName = "Unsupported Editor",
+                    WindowTitle = "AMV lyrics timeline"
+                });
+                Check("unknown app falls back to generic provider",
+                    generic?.Provider == "generic-window"
+                    && generic.Details == "Using Unsupported Editor"
+                    && generic.State == "AMV lyrics timeline");
+
+                var afterEffects = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "AfterFX",
+                    AppName = "Adobe After Effects",
+                    WindowTitle = "anime-op.aep - Adobe After Effects 2026"
+                });
+                Check("After Effects provider extracts project name",
+                    afterEffects?.Provider == "after-effects"
+                    && afterEffects.State == "Project: anime-op.aep");
+                Check("After Effects provider ignores product-name prefix",
+                    AfterEffectsActivityProvider.ExtractProjectName(
+                        "Adobe After Effects 2026 - anime-op.aep") == "anime-op.aep");
+
+                var bridgeDocument = new LocalActivityDocument
+                {
+                    Process = "AfterFX",
+                    Details = "Editing anime-op.aep",
+                    State = "Composition: Lyrics / Layer: Verse 1",
+                    UpdatedAtUtc = DateTime.UtcNow
+                };
+                File.WriteAllText(Path.Combine(bridgeDir, "afterfx.json"),
+                    JsonSerializer.Serialize(bridgeDocument, JsonContext.Default.LocalActivityDocument));
+                var bridged = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "AfterFX",
+                    AppName = "Adobe After Effects",
+                    WindowTitle = "Adobe After Effects"
+                });
+                Check("local bridge overrides app-specific provider",
+                    bridged?.Provider == "local-bridge"
+                    && bridged.State == "Composition: Lyrics / Layer: Verse 1");
+                Check("provider text is capped to Discord's 128-character field limit",
+                    ActivityText.Normalize(new string('x', 200)).Length == ActivityText.DiscordTextLimit);
+            }
+            finally
+            {
+                Directory.Delete(bridgeDir, true);
+            }
 
             Console.WriteLine("Private browsing detection:");
             Check("Chrome Incognito detected", PrivateBrowsingDetector.IsPrivateWindow("chrome", "Secret tab - Incognito - Google Chrome"));
@@ -1443,14 +1497,6 @@ namespace Tests
                     Check("tray-animation click forwards new state",
                         coord.Called.Any(c => c.StartsWith("SetTrayAnimation:")));
 
-                    // Telemetry forwards the inverted current state (record happens
-                    // synchronously before the await completes).
-                    var telemetryItem = menu.Items.OfType<System.Windows.Forms.ToolStripMenuItem>()
-                        .First(i => (i.Tag as string) == FluentGlyphs.Send);
-                    telemetryItem.PerformClick();
-                    Check("telemetry click forwards new state",
-                        coord.Called.Any(c => c.StartsWith("ToggleTelemetry:")));
-
                     // "Help & Guide" must survive WinForms mnemonic processing: the
                     // raw "&" was swallowed as an access-key prefix (invisible
                     // underline on the following space), rendering "Help  Guide".
@@ -1945,8 +1991,6 @@ namespace Tests
             { Called.Add("SetMouseEnergy:" + enabled); return System.Threading.Tasks.Task.CompletedTask; }
             public System.Threading.Tasks.Task SetTrayAnimationAsync(bool enabled)
             { Called.Add("SetTrayAnimation:" + enabled); return System.Threading.Tasks.Task.CompletedTask; }
-            public System.Threading.Tasks.Task ToggleTelemetryAsync(bool enabled)
-            { Called.Add("ToggleTelemetry:" + enabled); return System.Threading.Tasks.Task.CompletedTask; }
             public bool SaveConfig(Config cfg)
             { Called.Add("SaveConfig"); return true; }
             public void ReloadConfig() => Called.Add("ReloadConfig");

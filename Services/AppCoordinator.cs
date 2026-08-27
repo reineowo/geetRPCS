@@ -67,6 +67,7 @@ namespace geetRPCS.Services
 
         private readonly object _lock = new object();
         private readonly object _presenceUpdateLock = new object();
+        private readonly ActivityProviderRegistry _activityProviders;
         private PresenceBuilder _presenceBuilder;
         private StatsCoordinator _stats;
         private MouseActivityTracker _mouseTracker;
@@ -76,7 +77,9 @@ namespace geetRPCS.Services
         public AppCoordinator(IAppHost host)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
-            _presenceBuilder = new PresenceBuilder(_config);
+            _activityProviders = ActivityProviderRegistry.CreateDefault(watchBridge: true);
+            _activityProviders.ActivityChanged += OnProviderActivityChanged;
+            _presenceBuilder = new PresenceBuilder(_config, _activityProviders);
             _stats = new StatsCoordinator(_statistics, _lock);
         }
 
@@ -123,6 +126,15 @@ namespace geetRPCS.Services
         public void StartWatcher()
         {
             TaskbarWatcher.Start((proc, _details, _state, hWnd) => OnAppDetected(proc, hWnd));
+        }
+
+        private void OnProviderActivityChanged(string processName)
+        {
+            string current;
+            lock (_lock) { current = _currentApp; }
+            if (!string.IsNullOrEmpty(current)
+                && current.Equals(processName, StringComparison.OrdinalIgnoreCase))
+                RefreshCurrentPresence();
         }
 
         public void InitMouseTracker()
@@ -198,21 +210,8 @@ namespace geetRPCS.Services
                 }
                 _currentRpcClientId = idToUse;
                 _rpc = new DiscordRpcClient(idToUse);
-                _rpc.OnReady += async (sender, e) =>
-                {
-                    LogService.Log($"Discord RPC Ready! (ID: {idToUse}) User: {e.User.Username} (ID: {e.User.ID})", "INFO", "AppCoordinator");
-                    await Task.Run(async () =>
-                    {
-                        try
-                        {
-                            string username = e.User.Username ?? "Unknown";
-                            string displayName = e.User.DisplayName ?? username;
-                            ulong userId = e.User.ID;
-                            await TelemetryService.ReportStartupAsync(displayName, userId);
-                        }
-                        catch (Exception ex) { LogService.Log($"Telemetry error in OnReady: {ex.Message}", "ERROR", "AppCoordinator"); }
-                    });
-                };
+                _rpc.OnReady += (sender, e) =>
+                    LogService.Log($"Discord RPC ready (application ID: {idToUse})", "INFO", "AppCoordinator");
                 _rpc.OnError += (sender, e) => LogService.Log($"Discord RPC Error: {e.Message}", "ERROR", "AppCoordinator");
                 _rpc.OnConnectionFailed += (sender, e) => LogService.Log($"Discord RPC Connection Failed: {e.FailedPipe}", "WARNING", "AppCoordinator");
                 _rpc.Initialize();
@@ -463,14 +462,6 @@ namespace geetRPCS.Services
                 ToolTipIcon.Info);
         }
 
-        public async Task ToggleTelemetryAsync(bool enabled)
-        {
-            await TelemetryService.SetEnabledAsync(enabled);
-            _host.ShowBalloon(LanguageManager.Current.AppName,
-                enabled ? LanguageManager.Current.MsgTelemetryOn : LanguageManager.Current.MsgTelemetryOff,
-                ToolTipIcon.Info);
-        }
-
         // ----------------------------------------------------------------
         // Reload / reset
         // ----------------------------------------------------------------
@@ -671,6 +662,8 @@ namespace geetRPCS.Services
             _wittyTimer?.Stop();
             _wittyTimer?.Dispose();
             TaskbarWatcher.Stop();
+            _activityProviders.ActivityChanged -= OnProviderActivityChanged;
+            _activityProviders.Dispose();
             _mouseTracker?.Dispose();
             _mouseTracker = null;
             _rpc?.ClearPresence();
