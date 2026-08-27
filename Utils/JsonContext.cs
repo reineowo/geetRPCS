@@ -21,6 +21,7 @@ namespace geetRPCS.Utils
     [JsonSerializable(typeof(Dictionary<string, string>))]
     [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
     [JsonSerializable(typeof(List<DiscordAsset>))]
+    [JsonSerializable(typeof(LocalActivityDocument))]
     internal partial class JsonContext : JsonSerializerContext
     {
     }

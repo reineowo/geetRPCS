@@ -167,7 +167,7 @@ Klik kanan ikon tray:
 | :--- | :--- |
 | ⚡ Quick Actions | Kelola shortcut, buka folder, edit config |
 | ⏸️ Pause / 🔒 Private Mode | Toggle presence atau samarkan judul window |
-| 🖱️ Mouse Energy / 🔄 Auto-Update / 🎨 Tray Animation / 📡 Telemetry | Toggle fitur |
+| 🖱️ Mouse Energy / 🔄 Auto-Update / 🎨 Tray Animation | Toggle fitur |
 | 🌓 Theme | Ganti tema UI: System / Dark / Light |
 | 🛠️ Manage Apps | Enable/disable app, editor presence per-app, **Add Custom App** |
 | ✨ Custom Rich Presence | Buat presence sendiri (teks, tombol, elapsed time, Application ID Anda) |

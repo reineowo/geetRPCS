@@ -30,8 +30,8 @@ namespace geetRPCS.Models
         public bool TrayAnimationEnabled { get; set; } = true;
         [JsonPropertyName("themeMode")]
         public string ThemeMode { get; set; } = "System"; // System, Dark, Light
-        [JsonPropertyName("telemetryEnabled")]
-        public bool TelemetryEnabled { get; set; } = true;
+        [JsonPropertyName("trackUnknownApps")]
+        public bool TrackUnknownApps { get; set; } = true;
         [JsonPropertyName("updateNotificationMode")]
         public string UpdateNotificationMode { get; set; } = "Notification"; // Notification, Dialog, Silent
         [JsonPropertyName("appOverrides")]

@@ -349,10 +349,8 @@ namespace geetRPCS.Services
         }
 
         // Downloads checksums-*.txt from the release and verifies the SHA-256 hash of
-        // the downloaded zip before it is extracted. Fails closed: if the release
-        // ships a checksums file but the entry is missing or the hash mismatches,
-        // the update is aborted. If no checksums file exists, verification is skipped
-        // with a warning (mirrors install.ps1 behavior).
+        // the downloaded zip before it is extracted. Verification fails closed:
+        // a release without a checksum asset is not eligible for in-app install.
         private async Task<bool> VerifyChecksumAsync(GitHubRelease release, string zipPath, GitHubAsset asset, CancellationToken ct)
         {
             try
@@ -365,8 +363,10 @@ namespace geetRPCS.Services
 
                 if (checksumsAsset == null)
                 {
-                    Log("No checksums file in release - skipping verification", "WARNING");
-                    return true;
+                    const string error = "Release has no checksums file. Aborting in-app update for safety.";
+                    Log(error, "ERROR");
+                    OnError?.Invoke(error);
+                    return false;
                 }
 
                 OnStatusChanged?.Invoke(LanguageManager.Current.UpdateVerifying ?? "Verifying update integrity...");

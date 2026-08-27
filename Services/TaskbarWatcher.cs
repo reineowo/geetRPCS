@@ -284,6 +284,13 @@ namespace geetRPCS.Services
                             var defaultMatch = allMatches.FirstOrDefault(a => string.IsNullOrEmpty(a.WindowTitle));
                             if (defaultMatch != null) return (procName, pid, foregroundHwnd, title);
                         }
+
+                        // Universal fallback: unsupported applications still get a
+                        // useful presence through GenericWindowActivityProvider.
+                        // Users can opt out in settings.json or disable individual
+                        // process names through the existing disabledApps list.
+                        if (SettingsService.Instance.TrackUnknownApps)
+                            return (procName, pid, foregroundHwnd, title);
                     }
                     catch
                     {

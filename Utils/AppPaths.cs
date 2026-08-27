@@ -1,7 +1,7 @@
 /**
  * geetRPCS - App Paths
  * Central path provider. Program files (shipped resources) stay next to the
- * executable, while user data (settings, statistics, logs, telemetry, caches)
+ * executable, while user data (settings, statistics, logs, integrations, caches)
  * lives in %LOCALAPPDATA%\geetRPCS - matching the documented install layout in
  * install.ps1 / PRIVACY.md regardless of where the portable exe is placed.
  */
@@ -40,9 +40,8 @@ namespace geetRPCS.Utils
         public static string SettingsPath => Path.Combine(UserDataDir, "settings.json");
         public static string StatisticsPath => Path.Combine(UserDataDir, "statistics.json");
         public static string LogPath => Path.Combine(UserDataDir, "geetRPCS.log");
-        public static string TelemetryPath => Path.Combine(UserDataDir, ".telemetry");
-        public static string TelemetryLogPath => Path.Combine(UserDataDir, "telemetry.log");
         public static string ImageCacheDir => Path.Combine(UserDataDir, "ImageCache");
+        public static string ActivityBridgeDir => Path.Combine(UserDataDir, "activity");
 
         private static string InitializeUserDataDir()
         {

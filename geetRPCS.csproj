@@ -2,7 +2,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <NuGetAudit>false</NuGetAudit>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
     <AssemblyName>geetRPCS</AssemblyName>
