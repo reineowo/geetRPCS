@@ -232,7 +232,8 @@ Out of the box geetRPCS works without any config file. Edit [`config.json`](conf
 
 **Need a Discord Application ID?** Follow [`docs/CUSTOM_APP_ID.md`](docs/CUSTOM_APP_ID.md) for the step-by-step Discord Developer Portal walkthrough (create app, copy ID, upload art assets).
 
-**Per-app overrides** (large image, per-app App ID, buttons, timestamps) live in [`apps.json`](apps.json) — add a `"clientId"` field to a single entry to switch Discord App IDs dynamically when that app is focused.
+The global Application ID is used for every bundled app. An explicit per-app
+Application ID set through **Manage Apps** can still override it.
 
 > Buttons need `http(s)://` and ≤32-char labels; invalid buttons are skipped silently.
 

@@ -107,7 +107,7 @@ namespace Tests
             Console.WriteLine("-- valid: 17-20 digits --");
             Check("17 digits accepted", AppCoordinator.IsValidApplicationId("12345678901234567"));
             Check("18 digits accepted", AppCoordinator.IsValidApplicationId("123456789012345678"));
-            Check("19 digits accepted (default app id)", AppCoordinator.IsValidApplicationId("1433700335863726183"));
+            Check("19 digits accepted (default app id)", AppCoordinator.IsValidApplicationId("1542567449302540329"));
             Check("20 digits accepted", AppCoordinator.IsValidApplicationId("12345678901234567890"));
             Console.WriteLine("-- boundaries: 16 and 21 digits rejected --");
             Check("16 digits rejected", !AppCoordinator.IsValidApplicationId("1234567890123456"));
@@ -302,6 +302,8 @@ namespace Tests
 
             Console.WriteLine("Config JSON round-trip (AppCoordinator.SerializeConfig):");
             var roundCfg = AppCoordinator.GetDefaultConfig();
+            Check("default config uses the fork Discord application ID",
+                roundCfg.Discord.ApplicationId == "1542567449302540329");
             roundCfg.Discord.Details = "Idle text";
             roundCfg.Discord.ActiveDetails = "Editing {app_name}";
             roundCfg.Discord.ShowTimestamps = false;
@@ -570,8 +572,8 @@ namespace Tests
 
                 var wpfApps = new List<AppConfig>
                 {
-                    new AppConfig { Process = "notepad", AppName = "Notepad", ClientId = "1433700335863726183" },
-                    new AppConfig { Process = "code", AppName = "Visual Studio Code", ClientId = "1433700335863726183" },
+                    new AppConfig { Process = "notepad", AppName = "Notepad", ClientId = "1542567449302540329" },
+                    new AppConfig { Process = "code", AppName = "Visual Studio Code", ClientId = "1542567449302540329" },
                 };
                 var wpfDisabled = new HashSet<string> { "code" };
                 var wpfOverrides = new Dictionary<string, AppOverrideConfig>
