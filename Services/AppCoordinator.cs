@@ -307,13 +307,10 @@ namespace geetRPCS.Services
                     _appsUsedThisSession.Add(proc);
                 }
 
-                // Bundled apps.json client IDs belong to upstream applications.
-                // Use this fork's global Application ID unless the user explicitly
-                // sets a per-app override through Manage Apps.
-                SettingsService.Instance.AppOverrides.TryGetValue(proc, out var userOverride);
-                string targetClientId = !string.IsNullOrEmpty(userOverride?.ClientId)
-                    ? userOverride.ClientId
-                    : _config.Discord?.ApplicationId;
+                // Effective entry: a per-app clientId override (Manage Apps)
+                // must switch the Discord client just like an apps.json one.
+                var appConfig = AppConfigManager.GetEffectiveApp(proc);
+                string targetClientId = !string.IsNullOrEmpty(appConfig?.ClientId) ? appConfig.ClientId : _config.Discord?.ApplicationId;
                 if (_currentRpcClientId != targetClientId)
                 {
                     LogService.Log($"App '{proc}' requires Client ID switch: {_currentRpcClientId ?? "default"} -> {targetClientId}", "INFO", "AppCoordinator");
@@ -726,7 +723,7 @@ namespace geetRPCS.Services
         {
             Discord = new DiscordConfig
             {
-                ApplicationId = "1542567449302540329",
+                ApplicationId = "1433700335863726183",
                 Details = "Idling...",
                 State = "Ready to work",
                 ActiveDetails = "Working on {app_name}",
