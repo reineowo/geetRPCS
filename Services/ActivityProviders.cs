@@ -55,6 +55,7 @@ namespace geetRPCS.Services
             _providers = new IActivityProvider[]
             {
                 new LocalActivityBridgeProvider(bridgeDirectory),
+                new GeForceNowActivityProvider(),
                 new AfterEffectsActivityProvider(),
                 new GenericWindowActivityProvider()
             };
@@ -196,6 +197,45 @@ namespace geetRPCS.Services
             string value = processName ?? "unknown";
             foreach (char invalid in Path.GetInvalidFileNameChars()) value = value.Replace(invalid, '_');
             return value.Trim().ToLowerInvariant();
+        }
+    }
+
+    internal sealed class GeForceNowActivityProvider : IActivityProvider
+    {
+        private static readonly Regex BrandedTitle = new Regex(
+            @"^(?<game>.+?)\s+(?:(?:on)\s+|[-–—|:]\s*)(?:NVIDIA\s+)?GeForce\s+NOW\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        public string Name => "geforce-now";
+
+        public bool CanHandle(ActivityContext context)
+            => context.ProcessName.Equals("GeForceNOW", StringComparison.OrdinalIgnoreCase);
+
+        public ActivitySnapshot GetActivity(ActivityContext context)
+        {
+            string gameName = ExtractGameName(context.WindowTitle);
+            return new ActivitySnapshot
+            {
+                Details = gameName ?? "GeForce NOW",
+                Provider = Name,
+                DetailsOnly = true
+            };
+        }
+
+        internal static string ExtractGameName(string title)
+        {
+            string normalized = ActivityText.Normalize(title);
+            if (string.IsNullOrEmpty(normalized)) return null;
+
+            var match = BrandedTitle.Match(normalized);
+            if (match.Success)
+                return ActivityText.Normalize(match.Groups["game"].Value);
+
+            if (normalized.Equals("GeForce NOW", StringComparison.OrdinalIgnoreCase)
+                || normalized.Equals("NVIDIA GeForce NOW", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return normalized;
         }
     }
 

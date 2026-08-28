@@ -31,6 +31,7 @@ namespace geetRPCS.Models
         public string Details { get; init; }
         public string State { get; init; }
         public string Provider { get; init; }
+        public bool DetailsOnly { get; init; }
     }
 
     /// <summary>

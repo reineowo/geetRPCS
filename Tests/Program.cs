@@ -155,6 +155,25 @@ namespace Tests
                 Check("legacy executable name is replaced by the current display brand",
                     brandedSelf?.Details == $"Using {Branding.ProductName}");
 
+                var geforceNow = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "GeForceNOW",
+                    AppName = "GeForceNOW",
+                    WindowTitle = "Genshin Impact on GeForce NOW"
+                });
+                Check("GeForce NOW provider extracts only the game name",
+                    geforceNow?.Provider == "geforce-now"
+                    && geforceNow.Details == "Genshin Impact"
+                    && geforceNow.DetailsOnly);
+                Check("GeForce NOW provider supports separator-style titles",
+                    GeForceNowActivityProvider.ExtractGameName("Cyberpunk 2077 | NVIDIA GeForce NOW") == "Cyberpunk 2077");
+
+                var geforceFallbackPresence = new PresenceBuilder(AppCoordinator.GetDefaultConfig(), providers)
+                    .BuildAppPresence("GeForceNOW", IntPtr.Zero, DateTime.UtcNow, "Working");
+                Check("GeForce NOW presence suppresses secondary and energy status",
+                    geforceFallbackPresence.Details == "GeForce NOW"
+                    && string.IsNullOrEmpty(geforceFallbackPresence.State));
+
                 var afterEffects = providers.Resolve(new ActivityContext
                 {
                     ProcessName = "AfterFX",

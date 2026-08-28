@@ -78,11 +78,14 @@ namespace geetRPCS.Services
                 ? new GenericWindowActivityProvider().GetActivity(activityContext)
                 : _activityProviders.Resolve(activityContext);
 
+            bool hasStateOverride = SettingsService.Instance.AppOverrides.TryGetValue(processName, out var stateOverride)
+                && !string.IsNullOrWhiteSpace(stateOverride.State);
+            bool detailsOnly = activity?.DetailsOnly == true && !hasStateOverride;
             string detailsTemplate = GetProviderAwareDetails(processName, activity);
-            string stateTemplate = GetProviderAwareState(processName, activity);
+            string stateTemplate = detailsOnly ? "" : GetProviderAwareState(processName, activity);
             string details = ActivityText.Normalize(ReplacePlaceholders(detailsTemplate, processName, hWnd, visibleTitle)) ?? "";
             string state = ActivityText.Normalize(ReplacePlaceholders(stateTemplate, processName, hWnd, visibleTitle)) ?? "";
-            if (!string.IsNullOrEmpty(energyState))
+            if (!detailsOnly && !string.IsNullOrEmpty(energyState))
                 state = ActivityText.Normalize($"{state} | {energyState}") ?? "";
 
             var presence = new RichPresence
