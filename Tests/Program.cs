@@ -128,6 +128,10 @@ namespace Tests
             Console.WriteLine("Universal tracking default:");
             Check("unknown apps are tracked by default (new AppSettings)", new AppSettings().TrackUnknownApps);
             Check("theme mode defaults to System (new AppSettings)", new AppSettings().ThemeMode == "System");
+            Check("GeForce NOW foreground/title events bypass the debounce",
+                TaskbarWatcher.GetEventDebounceMilliseconds("GeForceNOW") == 0);
+            Check("other foreground/title events retain the stability debounce",
+                TaskbarWatcher.GetEventDebounceMilliseconds("msedge") == 250);
 
             Console.WriteLine("Activity provider pipeline:");
             string bridgeDir = Path.Combine(Path.GetTempPath(), "geet_activity_test_" + Guid.NewGuid().ToString("N"));

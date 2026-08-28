@@ -52,6 +52,7 @@ namespace geetRPCS.Services
         private const uint WINEVENT_OUTOFCONTEXT = 0;
         private const int OBJID_WINDOW = 0;
         private const int CHILDID_SELF = 0;
+        private const int DefaultEventDebounceMilliseconds = 250;
         private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
         public static void Reload()
@@ -127,7 +128,7 @@ namespace geetRPCS.Services
             if (eventType == EVENT_SYSTEM_FOREGROUND)
             {
                 _cachedForegroundHwnd = hwnd;
-                _debounceTimer?.Change(250, Timeout.Infinite);
+                _debounceTimer?.Change(GetEventDebounceMilliseconds(hwnd), Timeout.Infinite);
             }
             // NAMECHANGE fires for EVERY title/name change system-wide; compare
             // against the cached foreground HWND (plain field compare) instead
@@ -139,9 +140,36 @@ namespace geetRPCS.Services
                 && idChild == CHILDID_SELF
                 && hwnd == _cachedForegroundHwnd)
             {
-                _debounceTimer?.Change(250, Timeout.Infinite);
+                _debounceTimer?.Change(GetEventDebounceMilliseconds(hwnd), Timeout.Infinite);
             }
         }
+
+        private static int GetEventDebounceMilliseconds(IntPtr hWnd)
+        {
+            lock (_lock)
+            {
+                if (hWnd == _lastHWnd)
+                    return GetEventDebounceMilliseconds(_lastFound);
+            }
+
+            if (hWnd == IntPtr.Zero) return DefaultEventDebounceMilliseconds;
+            GetWindowThreadProcessId(hWnd, out uint processId);
+            if (processId == 0) return DefaultEventDebounceMilliseconds;
+            try
+            {
+                using var process = Process.GetProcessById((int)processId);
+                return GetEventDebounceMilliseconds(process.ProcessName);
+            }
+            catch
+            {
+                return DefaultEventDebounceMilliseconds;
+            }
+        }
+
+        internal static int GetEventDebounceMilliseconds(string processName)
+            => string.Equals(processName, "GeForceNOW", StringComparison.OrdinalIgnoreCase)
+                ? 0
+                : DefaultEventDebounceMilliseconds;
 
         private static void CheckCurrentApp()
         {
