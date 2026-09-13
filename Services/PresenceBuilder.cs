@@ -101,7 +101,14 @@ namespace geetRPCS.Services
             if (appConfig?.ShowTimestamps ?? Config.Discord?.ShowTimestamps ?? true)
                 presence.Timestamps = new Timestamps { Start = started };
 
-            var appButtons = BuildButtons(appConfig?.Buttons?.Select(b => (b.Label, b.Url)) ?? Enumerable.Empty<(string, string)>());
+            SettingsService.Instance.AppOverrides.TryGetValue(processName, out var appOverride);
+            var customApp = SettingsService.Instance.CustomApps?
+                .LastOrDefault(a => string.Equals(a.Process, processName, StringComparison.OrdinalIgnoreCase));
+            var appButtons = ResolveAppButtonsForSources(
+                appOverride?.Buttons?.Select(b => (b.Label, b.Url)),
+                customApp?.Buttons?.Select(b => (b.Label, b.Url)),
+                Config.Discord?.Buttons?.Select(b => (b.Label, b.Url)),
+                appConfig?.Buttons?.Select(b => (b.Label, b.Url)));
             if (appButtons != null && appButtons.Length > 0) presence.Buttons = appButtons;
             return presence;
         }
@@ -158,9 +165,9 @@ namespace geetRPCS.Services
         };
 
         /// <summary>Validates and caps buttons (Discord allows at most 2, label &lt;= 32 chars, https only).</summary>
-        private DiscordRPC.Button[] BuildButtons(IEnumerable<(string Label, string Url)> source)
+        private static DiscordRPC.Button[] BuildButtons(IEnumerable<(string Label, string Url)> source)
         {
-            var valid = source
+            var valid = (source ?? Enumerable.Empty<(string Label, string Url)>())
                 .Where(b => !string.IsNullOrEmpty(b.Label)
                             && !string.IsNullOrEmpty(b.Url)
                             && IsValidUrl(b.Url)
@@ -169,6 +176,27 @@ namespace geetRPCS.Services
                 .Select(b => new DiscordRPC.Button { Label = b.Label, Url = b.Url })
                 .ToArray();
             return valid.Length > 0 ? valid : null;
+        }
+
+        /// <summary>
+        /// Resolves active-presence buttons by ownership rather than by the merged
+        /// apps.json entry. User-authored values always beat promotional/default
+        /// database buttons: per-app override &gt; custom app &gt; global config &gt;
+        /// bundled app. Invalid/empty candidates fall through to the next source.
+        /// </summary>
+        internal static DiscordRPC.Button[] ResolveAppButtonsForSources(
+            IEnumerable<(string Label, string Url)> perAppOverride,
+            IEnumerable<(string Label, string Url)> customApp,
+            IEnumerable<(string Label, string Url)> globalConfig,
+            IEnumerable<(string Label, string Url)> bundledApp)
+        {
+            var sources = new[] { perAppOverride, customApp, globalConfig, bundledApp };
+            foreach (var source in sources)
+            {
+                var buttons = BuildButtons(source);
+                if (buttons != null && buttons.Length > 0) return buttons;
+            }
+            return null;
         }
 
         public static bool IsValidUrl(string url)

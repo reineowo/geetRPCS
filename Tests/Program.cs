@@ -178,6 +178,35 @@ namespace Tests
                     geforceFallbackPresence.Details == "GeForce NOW"
                     && string.IsNullOrEmpty(geforceFallbackPresence.State));
 
+                var globalButtons = new[]
+                {
+                    ("Facebook", "https://facebook.com/example"),
+                    ("Discord", "https://discord.gg/example")
+                };
+                var bundledButtons = new[]
+                {
+                    ("Try YuuSoCuti Status!", "https://geetrpcs.vercel.app/")
+                };
+                var resolvedGlobalButtons = PresenceBuilder.ResolveAppButtonsForSources(
+                    null, null, globalButtons, bundledButtons);
+                Check("global custom buttons replace bundled promotional buttons",
+                    resolvedGlobalButtons?.Length == 2
+                    && resolvedGlobalButtons[0].Label == "Facebook"
+                    && resolvedGlobalButtons[1].Label == "Discord");
+
+                var perAppButtons = new[] { ("Project", "https://example.com/project") };
+                var resolvedPerAppButtons = PresenceBuilder.ResolveAppButtonsForSources(
+                    perAppButtons, null, globalButtons, bundledButtons);
+                Check("per-app custom buttons retain highest priority",
+                    resolvedPerAppButtons?.Length == 1
+                    && resolvedPerAppButtons[0].Label == "Project");
+
+                var resolvedAfterInvalidCustom = PresenceBuilder.ResolveAppButtonsForSources(
+                    new[] { ("Broken", "not-a-url") }, null, globalButtons, bundledButtons);
+                Check("invalid per-app buttons fall back to valid global buttons",
+                    resolvedAfterInvalidCustom?.Length == 2
+                    && resolvedAfterInvalidCustom[0].Label == "Facebook");
+
                 var afterEffects = providers.Resolve(new ActivityContext
                 {
                     ProcessName = "AfterFX",

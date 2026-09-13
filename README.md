@@ -236,6 +236,10 @@ The global Application ID is used for every bundled app. An explicit per-app
 Application ID set through **Manage Apps** can still override it.
 
 > Buttons need `http(s)://` and ≤32-char labels; invalid buttons are skipped silently.
+> Global custom buttons also apply while an app is active. User-authored per-app
+> buttons take priority, while bundled app buttons are only a fallback. Discord
+> hides Rich Presence buttons from the account publishing the activity, so test
+> them from a second account or a friend's profile view.
 
 ---
 
