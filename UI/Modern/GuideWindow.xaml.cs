@@ -31,7 +31,7 @@ namespace geetRPCS.UI.Modern
 {
     public partial class GuideWindow : Window
     {
-        private const string RepoUrl = "https://github.com/geetcr4ck/geetRPCS";
+        private const string RepoUrl = "https://github.com/reineowo/geetRPCS";
 
         private sealed class GuideTopic
         {
@@ -147,7 +147,7 @@ namespace geetRPCS.UI.Modern
                 Title = L.GuideNavAbout ?? "About",
                 Paragraphs = new[]
                 {
-                    string.Format(L.GuideAbout1 ?? "geetRPCS v{0}", Utils.AppVersion.VersionText),
+                    string.Format(L.GuideAbout1 ?? $"{Utils.Branding.ProductName} v{{0}}", Utils.AppVersion.VersionText),
                     L.GuideAbout2 ?? ""
                 },
                 Links = new[]

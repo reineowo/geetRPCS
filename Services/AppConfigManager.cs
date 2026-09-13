@@ -32,6 +32,7 @@ namespace geetRPCS.Services
         private static Dictionary<string, AppConfig> _exactLookup;
         private static readonly object _lock = new object();
         private static readonly string AppsPath = AppPaths.AppsPath;
+        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(250);
 
         public static IReadOnlyList<AppConfig> Apps
         {
@@ -86,7 +87,7 @@ namespace geetRPCS.Services
                         // Precompile Process Regex if needed
                         if (app.ProcessMatchMode != null && app.ProcessMatchMode.Equals("Regex", StringComparison.OrdinalIgnoreCase))
                         {
-                            try { app.ProcessRegex = new Regex(app.Process, RegexOptions.IgnoreCase | RegexOptions.Compiled); }
+                            try { app.ProcessRegex = new Regex(app.Process, RegexOptions.IgnoreCase | RegexOptions.Compiled, RegexTimeout); }
                             catch (Exception ex) { Debug.WriteLine($"[AppConfigManager] Invalid Process Regex '{app.Process}': {ex.Message}"); }
                         }
 
@@ -95,7 +96,7 @@ namespace geetRPCS.Services
                         {
                             if (!string.IsNullOrEmpty(app.WindowTitle))
                             {
-                                try { app.TitleRegex = new Regex(app.WindowTitle, RegexOptions.IgnoreCase | RegexOptions.Compiled); }
+                                try { app.TitleRegex = new Regex(app.WindowTitle, RegexOptions.IgnoreCase | RegexOptions.Compiled, RegexTimeout); }
                                 catch (Exception ex) { Debug.WriteLine($"[AppConfigManager] Invalid Title Regex '{app.WindowTitle}': {ex.Message}"); }
                             }
                         }

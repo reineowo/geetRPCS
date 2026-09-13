@@ -153,9 +153,14 @@ class Program : ApplicationContext, IAppHost, ITrayShell
             _coordinator.InitMouseTracker();
             RegisterHotkeys();
 
-            _updater = new UpdateOrchestrator(ShowBalloonTip, OnReleaseFound);
-            _updater.Start();
-            _coordinator.StartAutoUpdateCheck();
+            // Remote release/data checks are opt-in in this fork. Keeping the
+            // toggle off means no upstream repository is contacted at startup.
+            if (SettingsService.Instance.AutoUpdateEnabled)
+            {
+                _updater = new UpdateOrchestrator(ShowBalloonTip, OnReleaseFound);
+                _updater.Start();
+                _coordinator.StartAutoUpdateCheck();
+            }
 
             // Pre-create + pre-show the ManageAppsWindow (hidden, off-screen) so the
             // first real open skips the one-time ~100-200ms cost (BAML parse, ModernWpf
@@ -686,13 +691,6 @@ class Program : ApplicationContext, IAppHost, ITrayShell
                     $"ManageApps open summary: {_openCount} opens, avg {_openTotalMs / _openCount}ms, max {_openMaxMs}ms",
                     "INFO", "ManageApps");
             Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
-            try
-            {
-                if (_coordinator != null)
-                    TelemetryService.ReportShutdownAsync(_coordinator.SessionDuration, _coordinator.AppsUsedCount).Wait(3000);
-            }
-            catch (Exception ex) { Log($"Shutdown telemetry error: {ex.Message}"); }
-
             _hkPause?.Dispose();
             _hkPreview?.Dispose();
             _hkReload?.Dispose();
@@ -719,4 +717,4 @@ class Program : ApplicationContext, IAppHost, ITrayShell
         catch { }
         finally { Application.Exit(); }
     }
-}
+}

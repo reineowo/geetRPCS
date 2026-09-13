@@ -109,7 +109,7 @@ namespace geetRPCS.UI.Modern
                 LanguageManager.Current.DialogUpToDateTitle ?? "You're Up to Date!",
                 LanguageManager.Current.UpdateDialogCurrentVersion ?? "📦 Current Version:",
                 $"v{Utils.AppVersion.VersionText}",
-                LanguageManager.Current.UpdateDialogUpToDateMessage ?? "You have the latest version of geetRPCS installed.\nEnjoy your productivity! 🚀",
+                LanguageManager.Current.UpdateDialogUpToDateMessage ?? $"You have the latest version of {Utils.Branding.ProductName} installed.\nEnjoy your productivity! 🚀",
                 "SystemFillColorSuccessBrush",
                 LanguageManager.Current.UpdateBtnAwesome ?? "👍 Awesome!",
                 showClose: false);
@@ -141,7 +141,7 @@ namespace geetRPCS.UI.Modern
         private void ConfigureEnhanced(UpdateChecker.GitHubRelease release)
         {
             _release = release;
-            _downloadUrl = release.HtmlUrl ?? "https://github.com/geetcr4ck/geetRPCS/releases";
+            _downloadUrl = release.HtmlUrl ?? "https://github.com/reineowo/geetRPCS/releases";
             string latestVersion = release.TagName?.TrimStart('v')
                 ?? LanguageManager.Current.UpdateVersionUnknown;
 

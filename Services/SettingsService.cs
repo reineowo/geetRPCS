@@ -71,10 +71,10 @@ namespace geetRPCS.Services
             get { lock (_lock) { return _settings.ThemeMode; } }
             set { lock (_lock) { _settings.ThemeMode = value; } }
         }
-        public bool TelemetryEnabled
+        public bool TrackUnknownApps
         {
-            get { lock (_lock) { return _settings.TelemetryEnabled; } }
-            set { lock (_lock) { _settings.TelemetryEnabled = value; } }
+            get { lock (_lock) { return _settings.TrackUnknownApps; } }
+            set { lock (_lock) { _settings.TrackUnknownApps = value; } }
         }
         public string UpdateNotificationMode
         {

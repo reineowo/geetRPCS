@@ -34,7 +34,7 @@ namespace geetRPCS.Models
         public string LargeText { get; set; }
         [JsonPropertyName("smallKey")]
         public string SmallKey { get; set; }
-        // NOTE: smallText is intentionally removed - hardcoded as "geetRPCS" in PresenceAssets.cs
+        // NOTE: smallText is intentionally removed; PresenceAssets uses the current product brand.
         // This ensures consistent branding that cannot be modified via apps.json
         [JsonPropertyName("clientId")]
         public string ClientId { get; set; }

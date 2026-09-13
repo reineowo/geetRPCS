@@ -31,10 +31,17 @@ namespace geetRPCS.Services
 
         public Config Config { get; set; }
         public bool PrivateMode { get; set; }
+        private readonly ActivityProviderRegistry _activityProviders;
 
         public PresenceBuilder(Config config)
+            : this(config, ActivityProviderRegistry.CreateDefault())
+        {
+        }
+
+        internal PresenceBuilder(Config config, ActivityProviderRegistry activityProviders)
         {
             Config = config;
+            _activityProviders = activityProviders ?? throw new ArgumentNullException(nameof(activityProviders));
         }
 
         /// <summary>Builds the idle (no app active) presence from config.json.</summary>
@@ -57,9 +64,29 @@ namespace geetRPCS.Services
         /// <summary>Builds the active presence for a detected application.</summary>
         public RichPresence BuildAppPresence(string processName, IntPtr hWnd, DateTime started, string energyState = null)
         {
-            string details = ReplacePlaceholders(GetCustomDetailsForApp(processName), processName, hWnd);
-            string state = ReplacePlaceholders(GetCustomStateForApp(processName), processName, hWnd);
-            if (!string.IsNullOrEmpty(energyState)) state = $"{state} | {energyState}";
+            string visibleTitle = GetVisibleWindowTitle(processName, hWnd);
+            var activityContext = new ActivityContext
+            {
+                ProcessName = processName,
+                AppName = Placeholders.GetAppName(processName),
+                WindowTitle = visibleTitle,
+                WindowHandle = hWnd
+            };
+            // Private mode must cover every provider, including local bridge
+            // documents that may contain a project, composition, or layer name.
+            var activity = visibleTitle == HiddenTitle
+                ? new GenericWindowActivityProvider().GetActivity(activityContext)
+                : _activityProviders.Resolve(activityContext);
+
+            bool hasStateOverride = SettingsService.Instance.AppOverrides.TryGetValue(processName, out var stateOverride)
+                && !string.IsNullOrWhiteSpace(stateOverride.State);
+            bool detailsOnly = activity?.DetailsOnly == true && !hasStateOverride;
+            string detailsTemplate = GetProviderAwareDetails(processName, activity);
+            string stateTemplate = detailsOnly ? "" : GetProviderAwareState(processName, activity);
+            string details = ActivityText.Normalize(ReplacePlaceholders(detailsTemplate, processName, hWnd, visibleTitle)) ?? "";
+            string state = ActivityText.Normalize(ReplacePlaceholders(stateTemplate, processName, hWnd, visibleTitle)) ?? "";
+            if (!detailsOnly && !string.IsNullOrEmpty(energyState))
+                state = ActivityText.Normalize($"{state} | {energyState}") ?? "";
 
             var presence = new RichPresence
             {
@@ -74,9 +101,41 @@ namespace geetRPCS.Services
             if (appConfig?.ShowTimestamps ?? Config.Discord?.ShowTimestamps ?? true)
                 presence.Timestamps = new Timestamps { Start = started };
 
-            var appButtons = BuildButtons(appConfig?.Buttons?.Select(b => (b.Label, b.Url)) ?? Enumerable.Empty<(string, string)>());
+            SettingsService.Instance.AppOverrides.TryGetValue(processName, out var appOverride);
+            var customApp = SettingsService.Instance.CustomApps?
+                .LastOrDefault(a => string.Equals(a.Process, processName, StringComparison.OrdinalIgnoreCase));
+            var appButtons = ResolveAppButtonsForSources(
+                appOverride?.Buttons?.Select(b => (b.Label, b.Url)),
+                customApp?.Buttons?.Select(b => (b.Label, b.Url)),
+                Config.Discord?.Buttons?.Select(b => (b.Label, b.Url)),
+                appConfig?.Buttons?.Select(b => (b.Label, b.Url)));
             if (appButtons != null && appButtons.Length > 0) presence.Buttons = appButtons;
             return presence;
+        }
+
+        private string GetProviderAwareDetails(string processName, ActivitySnapshot activity)
+        {
+            if (SettingsService.Instance.AppOverrides.TryGetValue(processName, out var ov)
+                && !string.IsNullOrWhiteSpace(ov.Details))
+                return ov.Details;
+            // A deep/app-aware provider beats the bundled witty template. The
+            // generic provider is only a fallback, so known apps keep their
+            // existing customDetails behavior.
+            if (activity?.Provider != "generic-window" && !string.IsNullOrWhiteSpace(activity?.Details))
+                return activity.Details;
+            var app = AppConfigManager.FindExact(processName);
+            if (!string.IsNullOrWhiteSpace(app?.CustomDetails)) return app.CustomDetails;
+            if (!string.IsNullOrWhiteSpace(activity?.Details)) return activity.Details;
+            return Config.Discord?.ActiveDetails ?? "";
+        }
+
+        private string GetProviderAwareState(string processName, ActivitySnapshot activity)
+        {
+            if (SettingsService.Instance.AppOverrides.TryGetValue(processName, out var ov)
+                && !string.IsNullOrWhiteSpace(ov.State))
+                return ov.State;
+            if (!string.IsNullOrWhiteSpace(activity?.State)) return activity.State;
+            return Config.Discord?.ActiveState ?? "";
         }
 
         /// <summary>Template resolution for the detail line (override &gt; app &gt; active).</summary>
@@ -106,9 +165,9 @@ namespace geetRPCS.Services
         };
 
         /// <summary>Validates and caps buttons (Discord allows at most 2, label &lt;= 32 chars, https only).</summary>
-        private DiscordRPC.Button[] BuildButtons(IEnumerable<(string Label, string Url)> source)
+        private static DiscordRPC.Button[] BuildButtons(IEnumerable<(string Label, string Url)> source)
         {
-            var valid = source
+            var valid = (source ?? Enumerable.Empty<(string Label, string Url)>())
                 .Where(b => !string.IsNullOrEmpty(b.Label)
                             && !string.IsNullOrEmpty(b.Url)
                             && IsValidUrl(b.Url)
@@ -117,6 +176,27 @@ namespace geetRPCS.Services
                 .Select(b => new DiscordRPC.Button { Label = b.Label, Url = b.Url })
                 .ToArray();
             return valid.Length > 0 ? valid : null;
+        }
+
+        /// <summary>
+        /// Resolves active-presence buttons by ownership rather than by the merged
+        /// apps.json entry. User-authored values always beat promotional/default
+        /// database buttons: per-app override &gt; custom app &gt; global config &gt;
+        /// bundled app. Invalid/empty candidates fall through to the next source.
+        /// </summary>
+        internal static DiscordRPC.Button[] ResolveAppButtonsForSources(
+            IEnumerable<(string Label, string Url)> perAppOverride,
+            IEnumerable<(string Label, string Url)> customApp,
+            IEnumerable<(string Label, string Url)> globalConfig,
+            IEnumerable<(string Label, string Url)> bundledApp)
+        {
+            var sources = new[] { perAppOverride, customApp, globalConfig, bundledApp };
+            foreach (var source in sources)
+            {
+                var buttons = BuildButtons(source);
+                if (buttons != null && buttons.Length > 0) return buttons;
+            }
+            return null;
         }
 
         public static bool IsValidUrl(string url)
@@ -130,6 +210,9 @@ namespace geetRPCS.Services
         }
 
         public string ReplacePlaceholders(string format, string processName, IntPtr hWnd)
+            => ReplacePlaceholders(format, processName, hWnd, GetVisibleWindowTitle(processName, hWnd));
+
+        private string ReplacePlaceholders(string format, string processName, IntPtr hWnd, string visibleTitle)
         {
             if (string.IsNullOrEmpty(format)) return format ?? "";
             try
@@ -143,17 +226,7 @@ namespace geetRPCS.Services
                 string title = null;
                 if (hasWindowTitle)
                 {
-                    title = PrivateMode ? HiddenTitle : Placeholders.GetWindowTitle(hWnd);
-                    if (!PrivateMode)
-                    {
-                        string accessibleWindowName = PrivateBrowsingDetector.IsSupportedBrowser(processName)
-                            ? Placeholders.GetAccessibleWindowName(hWnd, title)
-                            : "";
-                        if (PrivateBrowsingDetector.IsPrivateWindow(processName, title, accessibleWindowName))
-                            title = HiddenTitle;
-                        else if (string.IsNullOrEmpty(title) || title.Length <= 3)
-                            title = LanguageManager.Current.Working;
-                    }
+                    title = string.IsNullOrEmpty(visibleTitle) ? LanguageManager.Current.Working : visibleTitle;
                 }
 
                 string wittyText = hasWittyText ? NarrativeService.GetForApp(processName) : null;
@@ -167,6 +240,18 @@ namespace geetRPCS.Services
                 LogService.Log($"ReplacePlaceholders error: {ex.Message}", "ERROR", "PresenceBuilder");
                 return format;
             }
+        }
+
+        private string GetVisibleWindowTitle(string processName, IntPtr hWnd)
+        {
+            if (PrivateMode) return HiddenTitle;
+            string title = Placeholders.GetWindowTitle(hWnd);
+            string accessibleWindowName = PrivateBrowsingDetector.IsSupportedBrowser(processName)
+                ? Placeholders.GetAccessibleWindowName(hWnd, title)
+                : "";
+            if (PrivateBrowsingDetector.IsPrivateWindow(processName, title, accessibleWindowName))
+                return HiddenTitle;
+            return title;
         }
     }
 }

@@ -33,7 +33,7 @@ namespace geetRPCS.UI.Modern
 {
     public partial class CustomRichPresenceWindow : Window
     {
-        private const string AssetsUrl = "https://github.com/geetcr4ck/geetRPCS/raw/main/AssetPack.zip";
+        private const string AssetsUrl = "https://github.com/reineowo/geetRPCS/raw/main/AssetPack.zip";
 
         private readonly Config _current;
 

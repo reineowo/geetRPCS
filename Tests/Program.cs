@@ -107,7 +107,7 @@ namespace Tests
             Console.WriteLine("-- valid: 17-20 digits --");
             Check("17 digits accepted", AppCoordinator.IsValidApplicationId("12345678901234567"));
             Check("18 digits accepted", AppCoordinator.IsValidApplicationId("123456789012345678"));
-            Check("19 digits accepted (default app id)", AppCoordinator.IsValidApplicationId("1433700335863726183"));
+            Check("19 digits accepted (default app id)", AppCoordinator.IsValidApplicationId("1542567449302540329"));
             Check("20 digits accepted", AppCoordinator.IsValidApplicationId("12345678901234567890"));
             Console.WriteLine("-- boundaries: 16 and 21 digits rejected --");
             Check("16 digits rejected", !AppCoordinator.IsValidApplicationId("1234567890123456"));
@@ -125,11 +125,126 @@ namespace Tests
             Check("whitespace-padded valid id accepted (trimmed)", AppCoordinator.IsValidApplicationId("  12345678901234567  "));
             Check("whitespace-padded short id still rejected", !AppCoordinator.IsValidApplicationId(" 1234567890123456 "));
 
-            Console.WriteLine("Telemetry default:");
-            // First run creates new AppSettings() with no saved file; the property
-            // initializer must keep telemetry ON by default (PRIVACY.md: "default: On").
-            Check("telemetry ON by default (new AppSettings)", new AppSettings().TelemetryEnabled);
+            Console.WriteLine("Universal tracking default:");
+            Check("unknown apps are tracked by default (new AppSettings)", new AppSettings().TrackUnknownApps);
             Check("theme mode defaults to System (new AppSettings)", new AppSettings().ThemeMode == "System");
+            Check("GeForce NOW foreground/title events bypass the debounce",
+                TaskbarWatcher.GetEventDebounceMilliseconds("GeForceNOW") == 0);
+            Check("other foreground/title events retain the stability debounce",
+                TaskbarWatcher.GetEventDebounceMilliseconds("msedge") == 250);
+
+            Console.WriteLine("Activity provider pipeline:");
+            string bridgeDir = Path.Combine(Path.GetTempPath(), "geet_activity_test_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(bridgeDir);
+            try
+            {
+                using var providers = ActivityProviderRegistry.CreateDefault(watchBridge: false, bridgeDirectory: bridgeDir);
+                var generic = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "unsupported-editor",
+                    AppName = "Unsupported Editor",
+                    WindowTitle = "AMV lyrics timeline"
+                });
+                Check("unknown app falls back to generic provider",
+                    generic?.Provider == "generic-window"
+                    && generic.Details == "Using Unsupported Editor"
+                    && generic.State == "AMV lyrics timeline");
+
+                var brandedSelf = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = Branding.LegacyProcessName,
+                    AppName = Branding.LegacyProcessName,
+                    WindowTitle = "Presence Preview"
+                });
+                Check("legacy executable name is replaced by the current display brand",
+                    brandedSelf?.Details == $"Using {Branding.ProductName}");
+
+                var geforceNow = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "GeForceNOW",
+                    AppName = "GeForceNOW",
+                    WindowTitle = "Genshin Impact on GeForce NOW"
+                });
+                Check("GeForce NOW provider extracts only the game name",
+                    geforceNow?.Provider == "geforce-now"
+                    && geforceNow.Details == "Genshin Impact"
+                    && geforceNow.DetailsOnly);
+                Check("GeForce NOW provider supports separator-style titles",
+                    GeForceNowActivityProvider.ExtractGameName("Cyberpunk 2077 | NVIDIA GeForce NOW") == "Cyberpunk 2077");
+
+                var geforceFallbackPresence = new PresenceBuilder(AppCoordinator.GetDefaultConfig(), providers)
+                    .BuildAppPresence("GeForceNOW", IntPtr.Zero, DateTime.UtcNow, "Working");
+                Check("GeForce NOW presence suppresses secondary and energy status",
+                    geforceFallbackPresence.Details == "GeForce NOW"
+                    && string.IsNullOrEmpty(geforceFallbackPresence.State));
+
+                var globalButtons = new[]
+                {
+                    ("Facebook", "https://facebook.com/example"),
+                    ("Discord", "https://discord.gg/example")
+                };
+                var bundledButtons = new[]
+                {
+                    ("Try YuuSoCuti Status!", "https://geetrpcs.vercel.app/")
+                };
+                var resolvedGlobalButtons = PresenceBuilder.ResolveAppButtonsForSources(
+                    null, null, globalButtons, bundledButtons);
+                Check("global custom buttons replace bundled promotional buttons",
+                    resolvedGlobalButtons?.Length == 2
+                    && resolvedGlobalButtons[0].Label == "Facebook"
+                    && resolvedGlobalButtons[1].Label == "Discord");
+
+                var perAppButtons = new[] { ("Project", "https://example.com/project") };
+                var resolvedPerAppButtons = PresenceBuilder.ResolveAppButtonsForSources(
+                    perAppButtons, null, globalButtons, bundledButtons);
+                Check("per-app custom buttons retain highest priority",
+                    resolvedPerAppButtons?.Length == 1
+                    && resolvedPerAppButtons[0].Label == "Project");
+
+                var resolvedAfterInvalidCustom = PresenceBuilder.ResolveAppButtonsForSources(
+                    new[] { ("Broken", "not-a-url") }, null, globalButtons, bundledButtons);
+                Check("invalid per-app buttons fall back to valid global buttons",
+                    resolvedAfterInvalidCustom?.Length == 2
+                    && resolvedAfterInvalidCustom[0].Label == "Facebook");
+
+                var afterEffects = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "AfterFX",
+                    AppName = "Adobe After Effects",
+                    WindowTitle = "anime-op.aep - Adobe After Effects 2026"
+                });
+                Check("After Effects provider extracts project name",
+                    afterEffects?.Provider == "after-effects"
+                    && afterEffects.State == "Project: anime-op.aep");
+                Check("After Effects provider ignores product-name prefix",
+                    AfterEffectsActivityProvider.ExtractProjectName(
+                        "Adobe After Effects 2026 - anime-op.aep") == "anime-op.aep");
+
+                var bridgeDocument = new LocalActivityDocument
+                {
+                    Process = "AfterFX",
+                    Details = "Editing anime-op.aep",
+                    State = "Composition: Lyrics / Layer: Verse 1",
+                    UpdatedAtUtc = DateTime.UtcNow
+                };
+                File.WriteAllText(Path.Combine(bridgeDir, "afterfx.json"),
+                    JsonSerializer.Serialize(bridgeDocument, JsonContext.Default.LocalActivityDocument));
+                var bridged = providers.Resolve(new ActivityContext
+                {
+                    ProcessName = "AfterFX",
+                    AppName = "Adobe After Effects",
+                    WindowTitle = "Adobe After Effects"
+                });
+                Check("local bridge overrides app-specific provider",
+                    bridged?.Provider == "local-bridge"
+                    && bridged.State == "Composition: Lyrics / Layer: Verse 1");
+                Check("provider text is capped to Discord's 128-character field limit",
+                    ActivityText.Normalize(new string('x', 200)).Length == ActivityText.DiscordTextLimit);
+            }
+            finally
+            {
+                Directory.Delete(bridgeDir, true);
+            }
 
             Console.WriteLine("Private browsing detection:");
             Check("Chrome Incognito detected", PrivateBrowsingDetector.IsPrivateWindow("chrome", "Secret tab - Incognito - Google Chrome"));
@@ -248,6 +363,8 @@ namespace Tests
 
             Console.WriteLine("Config JSON round-trip (AppCoordinator.SerializeConfig):");
             var roundCfg = AppCoordinator.GetDefaultConfig();
+            Check("default config uses the fork Discord application ID",
+                roundCfg.Discord.ApplicationId == "1542567449302540329");
             roundCfg.Discord.Details = "Idle text";
             roundCfg.Discord.ActiveDetails = "Editing {app_name}";
             roundCfg.Discord.ShowTimestamps = false;
@@ -414,6 +531,19 @@ namespace Tests
                         }
                     }
                     Check("every key in en.json exists in every language file and template.json", filesWithGaps == 0);
+
+                    int filesWithWrongBrand = 0;
+                    foreach (var file in Directory.EnumerateFiles(langsDir, "*.json"))
+                    {
+                        using var document = JsonDocument.Parse(File.ReadAllText(file));
+                        if (!document.RootElement.TryGetProperty("app_name", out var appName)
+                            || appName.GetString() != Branding.ProductName)
+                        {
+                            filesWithWrongBrand++;
+                            Console.WriteLine($"      {Path.GetFileName(file)}: app_name is not '{Branding.ProductName}'");
+                        }
+                    }
+                    Check("every language displays the current product brand", filesWithWrongBrand == 0);
                 }
             }
 
@@ -516,8 +646,8 @@ namespace Tests
 
                 var wpfApps = new List<AppConfig>
                 {
-                    new AppConfig { Process = "notepad", AppName = "Notepad", ClientId = "1433700335863726183" },
-                    new AppConfig { Process = "code", AppName = "Visual Studio Code", ClientId = "1433700335863726183" },
+                    new AppConfig { Process = "notepad", AppName = "Notepad", ClientId = "1542567449302540329" },
+                    new AppConfig { Process = "code", AppName = "Visual Studio Code", ClientId = "1542567449302540329" },
                 };
                 var wpfDisabled = new HashSet<string> { "code" };
                 var wpfOverrides = new Dictionary<string, AppOverrideConfig>
@@ -865,7 +995,7 @@ namespace Tests
                     State = "Coding",
                     Assets = new Assets
                     {
-                        LargeImageText = "geetRPCS",
+                        LargeImageText = Branding.ProductName,
                         LargeImageKey = "geetrpcs-logo",
                         SmallImageKey = "geetrpcs-small"
                     },
@@ -876,7 +1006,7 @@ namespace Tests
                     System.Windows.Forms.Application.DoEvents();
                     Thread.Sleep(10);
                 }
-                Check("app name updated from presence", preview.AppNameValue == "geetRPCS");
+                Check("app name updated from presence", preview.AppNameValue == Branding.ProductName);
                 Check("details updated from presence", preview.DetailsValue == "Working on something");
                 Check("state updated from presence", preview.StateValue == "Coding");
                 Check("presence button 1 visible", preview.IsButton1Visible);
@@ -888,7 +1018,7 @@ namespace Tests
 
                 preview.SetIdleState();
                 Check("idle state resets buttons", !preview.IsButton1Visible);
-                Check("idle state restores app name", preview.AppNameValue == "geetRPCS");
+                Check("idle state restores app name", preview.AppNameValue == Branding.ProductName);
                 Check("idle state restores live status", preview.StatusValue == LanguageManager.Current.PreviewLive);
 
                 preview.ToggleVisibility();
@@ -1443,14 +1573,6 @@ namespace Tests
                     Check("tray-animation click forwards new state",
                         coord.Called.Any(c => c.StartsWith("SetTrayAnimation:")));
 
-                    // Telemetry forwards the inverted current state (record happens
-                    // synchronously before the await completes).
-                    var telemetryItem = menu.Items.OfType<System.Windows.Forms.ToolStripMenuItem>()
-                        .First(i => (i.Tag as string) == FluentGlyphs.Send);
-                    telemetryItem.PerformClick();
-                    Check("telemetry click forwards new state",
-                        coord.Called.Any(c => c.StartsWith("ToggleTelemetry:")));
-
                     // "Help & Guide" must survive WinForms mnemonic processing: the
                     // raw "&" was swallowed as an access-key prefix (invisible
                     // underline on the following space), rendering "Help  Guide".
@@ -1945,8 +2067,6 @@ namespace Tests
             { Called.Add("SetMouseEnergy:" + enabled); return System.Threading.Tasks.Task.CompletedTask; }
             public System.Threading.Tasks.Task SetTrayAnimationAsync(bool enabled)
             { Called.Add("SetTrayAnimation:" + enabled); return System.Threading.Tasks.Task.CompletedTask; }
-            public System.Threading.Tasks.Task ToggleTelemetryAsync(bool enabled)
-            { Called.Add("ToggleTelemetry:" + enabled); return System.Threading.Tasks.Task.CompletedTask; }
             public bool SaveConfig(Config cfg)
             { Called.Add("SaveConfig"); return true; }
             public void ReloadConfig() => Called.Add("ReloadConfig");
